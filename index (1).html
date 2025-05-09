@@ -1,0 +1,407 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio Website</title>
+  <style>
+    /* Smooth scroll and global transitions */
+    html {
+      scroll-behavior: smooth;
+    }
+    * {
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.development.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.15/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Theme Context
+    const ThemeContext = React.createContext();
+
+    // Navbar Component
+    function Navbar() {
+      const { theme, toggleTheme } = React.useContext(ThemeContext);
+      const navLinks = [
+        { name: 'Home', href: '#home' },
+        { name: 'About', href: '#about' },
+        { name: 'Projects', href: '#projects' },
+        { name: 'Skills', href: '#skills' },
+        { name: 'Contact', href: '#contact' },
+      ];
+
+      return (
+        <nav className="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-lg z-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between h-16 items-center">
+              <div className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                SS
+              </div>
+              <div className="flex items-center space-x-6">
+                {navLinks.map((link) => (
+                  <a
+                    key={link.name}
+                    href={link.href}
+                    className="relative text-gray-700 dark:text-gray-200 hover:text-blue-500 dark:hover:text-blue-400 transition-all duration-300 after:content-[''] after:absolute after:w-0 after:h-0.5 after:bg-blue-500 after:bottom-0 after:left-0 hover:after:w-full after:transition-all"
+                  >
+                    {link.name}
+                  </a>
+                ))}
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600 transition-all"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'dark' ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </nav>
+      );
+    }
+
+    // Hero Section
+    function Hero() {
+      return (
+        <section id="home" className="min-h-screen flex items-center bg-gradient-to-br from-blue-50 to-purple-100 dark:from-gray-800 dark:to-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 dark:text-white mb-4 animate-fade-in">
+              Shivam Singh
+            </h1>
+            <h2 className="text-3xl md:text-4xl text-blue-600 dark:text-blue-400 mb-6 font-semibold">
+              Frontend Developer
+            </h2>
+            <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto mb-8">
+              Building cutting-edge, responsive web applications with React, Tailwind CSS, and a passion for clean code.
+            </p>
+            <a
+              href="#projects"
+              className="inline-block px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+            >
+              View Projects
+            </a>
+          </div>
+        </section>
+      );
+    }
+
+    // About Section
+    function About() {
+      return (
+        <section id="about" className="py-20 bg-white dark:bg-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center text-gray-900 dark:text-white mb-12">
+              About Me
+            </h2>
+            <div className="flex flex-col md:flex-row items-center gap-12">
+              <div className="md:w-1/2">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-6 leading-relaxed">
+                  I'm a dedicated web developer with a Computer Science degree and a knack for creating seamless, user-centric
+                  web experiences. My expertise lies in React, Tailwind CSS, and modern JavaScript frameworks.
+                </p>
+                <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
+                  Outside of coding, I dive into open-source projects, stay updated with the latest tech trends, and unwind
+                  with sci-fi novels or a good hike.
+                </p>
+              </div>
+              <div className="md:w-1/2">
+                <div className="relative h-80 w-80 mx-auto">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-xl opacity-75"></div>
+                  <img 
+                    src="\shivam singh.jpg"
+                    alt="Shivam Singh"
+                    className="relative h-full w-full object-cover rounded-full ring-4 ring-blue-500 dark:ring-blue-400"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Project Card Component
+    function ProjectCard({ title, description, image, github, demo }) {
+      return (
+        <div className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-xl shadow-xl overflow-hidden transform hover:scale-105 transition-all duration-300">
+          <img src={image} alt={title} className="w-full h-48 object-cover group-hover:opacity-90 transition-opacity" />
+          <div className="p-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{title}</h3>
+            <p className="text-gray-700 dark:text-gray-300 mb-4 line-clamp-3">{description}</p>
+            <div className="flex space-x-4">
+              <a
+                href={github}
+                className="px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white rounded-full hover:bg-gray-800 dark:hover:bg-gray-600 transition-all"
+              >
+                GitHub
+              </a>
+              <a
+                href={demo}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all"
+              >
+                Demo
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Projects Section
+    function Projects() {
+      const projects = [
+        {
+          title: 'Spotify',
+          description: 'A Spotify clone built with React and Tailwind CSS. Features music playback, playlist management, and a responsive design that mirrors the official Spotify web player.',
+          image: '\sportyfy.png',
+          github: 'https://github.com/Shivam876/spotify',
+          demo: 'https://spotify-3y7l.vercel.app/'
+        },
+        {
+          title: 'SoftShell',
+          description: 'An innovative e-commerce platform for electronics and gadgets. Built with React, featuring a modern UI, shopping cart functionality, and seamless payment integration.',
+          image: '\softshell.png',
+          github: 'https://github.com/Shivam876/Soft-shell',
+          demo: 'https://soft-shell-s42e.vercel.app/'
+        },
+        {
+          title: 'Apollo',
+          description: 'A modern healthcare platform built with React. Features appointment booking, doctor profiles, medical services information, and a responsive patient dashboard. Includes dark mode and accessibility features.',
+          image: '\apollo.png',
+          github: 'https://github.com/Shivam876/Apollo',
+          demo: 'https://apollo-hospital-seven.vercel.app/'
+        }
+      ];
+
+      return (
+        <section id="projects" className="py-20 bg-gradient-to-br from-blue-50 to-purple-100 dark:from-gray-800 dark:to-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center text-gray-900 dark:text-white mb-12">
+              Projects
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {projects.map((project) => (
+                <ProjectCard key={project.title} {...project} />
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Skills Section
+    function Skills() {
+      const skills = [
+        'HTML', 'CSS', 'JavaScript', 'React', 'Node.js', 'Git', 'Tailwind CSS', 'TypeScript', 'MongoDB', 'Firebase'
+      ];
+
+      return (
+        <section id="skills" className="py-20 bg-white dark:bg-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center text-gray-900 dark:text-white mb-12">
+              Skills
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+              {skills.map((skill) => (
+                <div
+                  key={skill}
+                  className="relative bg-gradient-to-r from-blue-500 to-purple-500 text-white text-center py-3 px-4 rounded-full shadow-lg transform hover:scale-110 transition-all duration-300"
+                >
+                  <span className="relative z-10">{skill}</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 opacity-0 hover:opacity-100 transition-opacity rounded-full"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Contact Section
+    function Contact() {
+      return (
+        <section id="contact" className="py-20 bg-gradient-to-br from-blue-50 to-purple-100 dark:from-gray-800 dark:to-gray-900">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-4xl md:text-5xl font-bold text-center text-gray-900 dark:text-white mb-12">
+              Contact Me
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-8 rounded-xl shadow-lg">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Get in Touch</h3>
+                <p className="text-gray-700 dark:text-gray-300 mb-6">
+                  Let's connect! Reach out via email or find me on GitHub and LinkedIn.
+                </p>
+                <div className="space-y-4">
+                  <a
+                    href="mailto:sy220534@gmail.com"
+                    className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 transition-all"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                      <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                    </svg>
+                    sy220534@gmail.com
+                  </a>
+                  <a
+                    href="https://github.com/Shivam876"
+                    className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 transition-all"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.387.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
+                    </svg>
+                    GitHub
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/shivam-singh-887085309/"
+                    className="flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-500 transition-all"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-1.337-.029-3.058-1.867-3.058-1.867 0-2.152 1.459-2.152 2.971v5.691h-3v-11h2.879v1.509h.04c.401-.758 1.379-1.557 2.834-1.557 3.031 0 3.586 1.995 3.586 4.591v6.409z" />
+                    </svg>
+                    LinkedIn
+                  </a>
+                </div>
+              </div>
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md p-8 rounded-xl shadow-lg">
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">Send a Message</h3>
+                <form className="space-y-6">
+                  <div>
+                    <label htmlFor="name" className="block text-gray-700 dark:text-gray-300">
+                      Name
+                    </label>
+                    <input
+                      type="text"
+                      id="name"
+                      className="w-full px-4 py-2 border rounded-lg bg-white/50 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 outline-none transition-all"
+                      placeholder="Your Name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="block text-gray-700 dark:text-gray-300">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="w-full px-4 py-2 border rounded-lg bg-white/50 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 outline-none transition-all"
+                      placeholder="Your Email"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="message" className="block text-gray-700 dark:text-gray-300">
+                      Message
+                    </label>
+                    <textarea
+                      id="message"
+                      rows="4"
+                      className="w-full px-4 py-2 border rounded-lg bg-white/50 dark:bg-gray-700/50 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 outline-none transition-all"
+                      placeholder="Your Message"
+                    ></textarea>
+                  </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    Send Message
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    // Main App Component
+    function App() {
+      const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+      useEffect(() => {
+        if (theme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+        localStorage.setItem('theme', theme);
+      }, [theme]);
+
+      const toggleTheme = () => {
+        setTheme(theme === 'light' ? 'dark' : 'light');
+      };
+
+      return (
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+          <div className="scroll-smooth">
+            <Navbar />
+            <Hero />
+            <About />
+            <Projects />
+            <Skills />
+            <Contact />
+          </div>
+        </ThemeContext.Provider>
+      );
+    }
+
+    // Render the App
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
